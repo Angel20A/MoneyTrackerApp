@@ -41,17 +41,27 @@ export const loginUser = async (req) => {
             return { status: 400, error: "Contraseña incorrecta" };
         }
 
-        return { status: 200, data: { message: "Inicio de sesión exitoso", user } };
+        const data_user = {
+            id_usuario: user.USU_USUARIO,
+            nombre: user.USU_NOMBRE,
+            apellido: user.USU_APELLIDO,
+            email: user.USU_EMAIL,
+        };
+
+        return { status: 200, data: { message: "Inicio de sesión exitoso", user: data_user } };
     } catch (error) {
         return { status: 400, error: error.message || "Error al iniciar sesión" };
     }
 }
 
 //categorias
-export const getCategories = async () => {
+export const getCategories = async (req) => {
     try {
+        const { id_usuario } = req.params;
         const pool = await dbPool.connect();
-        const result = await pool.request().query("SELECT * FROM MTK_CATEGORIA");
+        const result = await pool.request()
+            .input("id_usuario", mssql.Int, id_usuario)
+            .query("SELECT * FROM MTK_CATEGORIA WHERE USU_USUARIO = @id_usuario");
 
         return { status: 200, data: result.recordset };
     } catch (error) {
@@ -67,7 +77,7 @@ export const addCategory = async (req) => {
             .input("nombre", mssql.NVarChar, nombre)
             .input("descripcion", mssql.NVarChar, descripcion)
             .input("id_usuario", mssql.Int, id_usuario)
-            .input("tipo_categoria", mssql.NVarChar, tipo_categoria)
+            .input("tipo_categoria", mssql.Bit, tipo_categoria)
             .query("INSERT INTO MTK_CATEGORIA (CAT_NOMBRE, USU_USUARIO, CAT_TIPO_CATEGORIA) VALUES (@nombre, @id_usuario, @tipo_categoria)");
 
         return { status: 200, data: { message: "Categoría agregada con éxito", result: result.recordset } };
@@ -79,17 +89,17 @@ export const addCategory = async (req) => {
 
 export const updateCategory = async (req) => {
     try {
-        const { id, nombre, descripcion, id_usuario, tipo_categoria } = req.body;
+        const { id_categoria, nombre, descripcion, id_usuario, tipo_categoria } = req.body;
         const pool = await dbPool.connect();
         const result = await pool.request()
-            .input("id", mssql.Int, id)
+            .input("id_categoria", mssql.Int, id_categoria)
             .input("nombre", mssql.NVarChar, nombre)
             .input("descripcion", mssql.NVarChar, descripcion)
             .input("id_usuario", mssql.Int, id_usuario)
-            .input("tipo_categoria", mssql.NVarChar, tipo_categoria)
+            .input("tipo_categoria", mssql.Bit, tipo_categoria)
             .query(`UPDATE MTK_CATEGORIA SET CAT_NOMBRE = @nombre, 
                     CAT_DESCRIPCION = @descripcion, USU_USUARIO = @id_usuario, 
-                    CAT_TIPO_CATEGORIA = @tipo_categoria WHERE CAT_ID = @id`);
+                    CAT_TIPO_CATEGORIA = @tipo_categoria WHERE CAT_CATEGORIA = @id_categoria`);
 
         return { status: 200, data: { message: "Categoría actualizada con éxito", result: result.recordset } };
     } catch (error) {
@@ -103,7 +113,7 @@ export const deleteCategory = async (req) => {
         const pool = await dbPool.connect();
         const result = await pool.request()
             .input("id_categoria", mssql.Int, id_categoria)
-            .query(`DELETE FROM MTK_CATEGORIA WHERE CAT_ID = @id_categoria`);
+            .query(`DELETE FROM MTK_CATEGORIA WHERE CAT_CATEGORIA = @id_categoria`);
 
         return { status: 200, data: { message: "Categoría eliminada con éxito", result: result.recordset } };
     } catch (error) {
@@ -114,7 +124,7 @@ export const deleteCategory = async (req) => {
 //cuenta
 export const getAccounts = async (req) => {
     try {
-        const { id_usuario } = req.body;
+        const { id_usuario } = req.params;
         const pool = await dbPool.connect();
         const result = await pool.request()
             .input("id_usuario", mssql.Int, id_usuario)
@@ -144,16 +154,16 @@ export const addAccount = async (req) => {
 
 export const updateAccount = async (req) => {
     try {
-        const { id, nombre, saldo, id_usuario } = req.body;
+        const { id_cuenta, nombre, saldo, id_usuario } = req.body;
         const pool = await dbPool.connect();
         const result = await pool.request()
-            .input("id", mssql.Int, id)
+            .input("id_cuenta", mssql.Int, id_cuenta)
             .input("nombre", mssql.NVarChar, nombre)
             .input("saldo", mssql.Decimal, saldo)
             .input("id_usuario", mssql.Int, id_usuario)
             .query(`UPDATE MTK_CUENTA SET CUE_NOMBRE = @nombre, 
                     CUE_SALDO = @saldo, USU_USUARIO = @id_usuario 
-                    WHERE CUE_ID = @id`);
+                    WHERE CUE_CUENTA = @id_cuenta`);
 
         return { status: 200, data: { message: "Cuenta actualizada con éxito", result: result.recordset } };
     } catch (error) {
@@ -163,11 +173,11 @@ export const updateAccount = async (req) => {
 
 export const deleteAccount = async (req) => {
     try {
-        const { id } = req.body;
+        const { id_cuenta } = req.body;
         const pool = await dbPool.connect();
         const result = await pool.request()
-            .input("id", mssql.Int, id)
-            .query(`DELETE FROM MTK_CUENTA WHERE CUE_ID = @id`);
+            .input("id_cuenta", mssql.Int, id_cuenta)
+            .query(`DELETE FROM MTK_CUENTA WHERE CUE_CUENTA = @id_cuenta`);
 
         return { status: 200, data: { message: "Cuenta eliminada con éxito", result: result.recordset } };
     } catch (error) {
@@ -178,7 +188,7 @@ export const deleteAccount = async (req) => {
 //movimientos
 export const getMovements = async (req) => {
     try {
-        const { id_usuario } = req.body;
+        const { id_usuario } = req.params;
         const pool = await dbPool.connect();
         const result = await pool.request()
             .input("id_usuario", mssql.Int, id_usuario)
@@ -187,8 +197,10 @@ export const getMovements = async (req) => {
                     FROM MTK_MOVIMIENTO m
                         INNER JOIN MTK_CATEGORIA c 
                             ON m.CAT_CATEGORIA = c.CAT_CATEGORIA
-                            WHERE m.CUE_CUENTA = @id_usuario
-                            ORDER BY m.MOV_FECHA DESC, m.MOV_HORA DESC;`);
+                        INNER JOIN MTK_CUENTA cu
+                            ON m.CUE_CUENTA = cu.CUE_CUENTA
+                        WHERE cu.USU_USUARIO = @id_usuario
+                        ORDER BY m.MOV_FECHA DESC, m.MOV_HORA DESC;`);
 
         return { status: 200, data: result.recordset };
     } catch (error) {
@@ -231,7 +243,7 @@ export const updateMovement = async (req) => {
             .query(`UPDATE MTK_MOVIMIENTO SET MOV_FECHA = @fecha, 
                     MOV_HORA = @hora, CUE_CUENTA = @cuenta, CAT_CATEGORIA = @categoria, MOV_MONTO = @monto, 
                     MOV_DESCRIPCION = @descripcion 
-                    WHERE MOV_ID = @id_movimiento`);
+                    WHERE MOV_MOVIMIENTO = @id_movimiento`);
 
         return { status: 200, data: { message: "Movimiento actualizado con éxito", result: result.recordset } };
     } catch (error) {
@@ -245,7 +257,7 @@ export const deleteMovement = async (req) => {
         const pool = await dbPool.connect();
         const result = await pool.request()
             .input("id_movimiento", mssql.Int, id_movimiento)
-            .query(`DELETE FROM MTK_MOVIMIENTO WHERE MOV_ID = @id_movimiento`);
+            .query(`DELETE FROM MTK_MOVIMIENTO WHERE MOV_MOVIMIENTO = @id_movimiento`);
 
         return { status: 200, data: { message: "Movimiento eliminado con éxito", result: result.recordset } };
     } catch (error) {
