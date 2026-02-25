@@ -16,6 +16,14 @@ const Login = () => {
         e.preventDefault();
         //console.log("Login submitted:", { email, password });
         try {
+            if (!email || !password) {
+                Swal.fire({
+                    icon: 'error',
+                    title: '¡Oops!',
+                    text: 'Todos los campos son obligatorios'
+                });
+                return;
+            }
             const response = await api.post("/login", { email, password });
             console.log("Login response:", response.data);
             localStorage.setItem('usuario', JSON.stringify(response.data));

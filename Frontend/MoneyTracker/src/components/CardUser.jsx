@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
 import Input from "./Input";
 
-const CardUser = ({ handle, route, email, setEmail, password, setPassword, title }) => {
+const CardUser = ({ children, handle, route, email, setEmail, password, setPassword, title }) => {
     return (
         <div className="card p-5" style={{ width: "100%", maxWidth: "600px" }}>
             <h3 className="text-center mb-4">{title}</h3>
             <form onSubmit={handle}>
+                {children}
                 <Input
                     type="email"
                     className="form-control"

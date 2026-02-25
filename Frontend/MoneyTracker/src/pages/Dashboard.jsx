@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Modal, Form } from 'react-bootstrap';
+import { BoxArrowRight } from "react-bootstrap-icons";
 import MovItem from "../components/MovItem";
 import CuentaItem from "../components/CuentaItem";
+import ModalMovements from "../components/ModalMovements";
+import ModalAccount from "../components/ModalAccount";
 import api from "../api/api";
 
 const Dashboard = () => {
@@ -14,38 +16,38 @@ const Dashboard = () => {
     const [movimientos, setMovimientos] = useState([]);
     const [cuentas, setCuentas] = useState([]);
     const [showModalMovement, setShowModalMovement] = useState(false);
+    const [showModalAccount, setShowModalAccount] = useState(false);
+
+    const obtenerMovimientos = async () => {
+        try {
+            const idUsuario = usuario?.user?.id_usuario;
+
+            if (idUsuario) {
+                const response = await api.get(`/movements/${idUsuario}`);
+                console.log(response.data);
+                setMovimientos(response.data);
+            }
+        } catch (error) {
+            console.error("Error obteniendo movimientos:", error);
+        }
+    };
+
+    const obtenerCuentas = async () => {
+        try {
+            const idUsuario = usuario?.user?.id_usuario;
+
+            if (idUsuario) {
+                const response = await api.get(`/accounts/${idUsuario}`);
+                console.log(response.data);
+                setCuentas(response.data);
+            }
+        } catch (error) {
+            console.error("Error obteniendo cuentas:", error);
+        }
+    };
 
     useEffect(() => {
-        const obtenerMovimientos = async () => {
-            try {
-                const idUsuario = usuario?.user?.id_usuario;
-
-                if (idUsuario) {
-                    const response = await api.get(`/movements/${idUsuario}`);
-                    console.log(response.data);
-                    setMovimientos(response.data);
-                }
-            } catch (error) {
-                console.error("Error obteniendo movimientos:", error);
-            }
-        };
-
         obtenerMovimientos();
-
-        const obtenerCuentas = async () => {
-            try {
-                const idUsuario = usuario?.user?.id_usuario;
-
-                if (idUsuario) {
-                    const response = await api.get(`/accounts/${idUsuario}`);
-                    console.log(response.data);
-                    setCuentas(response.data);
-                }
-            } catch (error) {
-                console.error("Error obteniendo cuentas:", error);
-            }
-        };
-
         obtenerCuentas();
     }, []);
 
@@ -64,6 +66,10 @@ const Dashboard = () => {
         setShowModalMovement(!showModalMovement);
     }
 
+    const handleModalAccount = () => {
+        setShowModalAccount(!showModalAccount);
+    }
+
     return (
         <div>
             <nav className="navbar navbar-expand-lg bg-body-tertiary">
@@ -74,7 +80,7 @@ const Dashboard = () => {
                     <div className="collapse navbar-collapse" id="navbarTogglerDemo01">
                         <form className="d-flex justify-content-between w-100" role="search">
                             <h4 className="text-dark me-2">¡Bienvenido {name}!</h4>
-                            <button className="btn btn-outline-success" type="submit" onClick={handleLogout}>Cerrar Sesión</button>
+                            <button className="btn btn-outline-info" type="submit" onClick={handleLogout}>Cerrar Sesión <BoxArrowRight /></button>
                         </form>
                     </div>
                 </div>
@@ -87,7 +93,7 @@ const Dashboard = () => {
                     <div className="container">
                         <h3 className="text-center mt-5">Movimientos</h3>
                         <div className="d-flex justify-content-end">
-                            <button className="btn btn-outline-info" onClick={handleModalMovement}>Agregar Movimiento</button>
+                            <button className="btn btn-outline-info mb-3" onClick={handleModalMovement}>Agregar Movimiento</button>
                         </div>
                         <div className="d-flex justify-content-center mb-3">
                             <div className="btn-group btn-group-md w-50" role="group" aria-label="Basic example">
@@ -103,7 +109,7 @@ const Dashboard = () => {
                                 </li>
                             ) : (
                                 movimientosFiltrados.map((mov) => (
-                                    <MovItem key={mov.MOV_MOVIMIENTO} mov={mov} gestion={gestion} />
+                                    <MovItem key={mov.MOV_MOVIMIENTO} mov={mov} gestion={gestion} obtenerMovimientos={obtenerMovimientos} obtenerCuentas={obtenerCuentas} />
                                 ))
                             )}
                         </ul>
@@ -113,7 +119,7 @@ const Dashboard = () => {
                     <div className="container">
                         <h3 className="text-center mt-5">Cuentas</h3>
                         <div className="d-flex justify-content-end">
-                            <button className="btn btn-outline-info" onClick={() => navigate("/add-account")}>Agregar Cuenta</button>
+                            <button className="btn btn-outline-info mb-3" onClick={handleModalAccount}>Agregar Cuenta</button>
                         </div>
                         <ul className="list-group shadow-sm">
                             {cuentas.length === 0 ? (
@@ -121,52 +127,26 @@ const Dashboard = () => {
                                     No hay cuentas registradas.
                                 </li>
                             ) : (
-                                cuentas.map((cuenta) => (
-                                    <CuentaItem key={cuenta.CTA_CUENTA} cuenta={cuenta} />
-                                ))
+                                <CuentaItem cuentas={cuentas} obtenerCuentas={obtenerCuentas} obtenerMovimientos={obtenerMovimientos} />
                             )}
                         </ul>
                     </div>
                 </div>
             </div>
-            <Modal show={showModalMovement} onHide={handleModalMovement}>
-                <Modal.Header closeButton><Modal.Title>Agregar Movimiento</Modal.Title></Modal.Header>
-                <Modal.Body>
-                    <Form>
-                        <Form.Group controlId="formBasicDescription">
-                            <Form.Label>MOV_FECHA</Form.Label>
-                            <Form.Control type="date" placeholder="Fecha" />
-                        </Form.Group>
-                        <Form.Group controlId="formBasicAmount">
-                            <Form.Label>MMOV_HORA</Form.Label>
-                            <Form.Control type="number" placeholder="Monto" />
-                        </Form.Group>
-                        <Form.Group controlId="formBasicAmount">
-                            <Form.Label>MMOV_HORA</Form.Label>
-                            <Form.Control type="number" placeholder="Monto" />
-                        </Form.Group>
-                        <Form.Group controlId="formBasicAmount">
-                            <Form.Label>CUE_CUENTA</Form.Label>
-                            <Form.Control type="number" placeholder="Monto" />
-                        </Form.Group>
-                        <Form.Group controlId="formBasicAmount">
-                            <Form.Label>CAT_CATEGORIA</Form.Label>
-                            <Form.Control type="number" placeholder="Monto" />
-                        </Form.Group>
-                        <Form.Group controlId="formBasicAmount">
-                            <Form.Label>MOV_MONTO</Form.Label>
-                            <Form.Control type="number" placeholder="Monto" />
-                        </Form.Group>
-                        <Form.Group controlId="formBasicAmount">
-                            <Form.Label>MOV_DESCRIPCION</Form.Label>
-                            <Form.Control type="text" placeholder="Descripción" />
-                        </Form.Group>
-                    </Form>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={handleModalMovement}>Cerrar</Button>
-                </Modal.Footer>
-            </Modal>
+            <ModalMovements
+                showModalMovement={showModalMovement}
+                handleModalMovement={handleModalMovement}
+                userId={usuario.user.id_usuario}
+                obtenerMovimientos={obtenerMovimientos}
+                obtenerCuentas={obtenerCuentas}
+            />
+            <ModalAccount
+                showModalAccount={showModalAccount}
+                handleModalAccount={handleModalAccount}
+                userId={usuario.user.id_usuario}
+                obtenerCuentas={obtenerCuentas}
+                setCuentas={setCuentas}
+            />
         </div>
     )
 }

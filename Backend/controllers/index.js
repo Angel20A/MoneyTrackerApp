@@ -57,11 +57,9 @@ export const loginUser = async (req) => {
 //categorias
 export const getCategories = async (req) => {
     try {
-        const { id_usuario } = req.params;
         const pool = await dbPool.connect();
         const result = await pool.request()
-            .input("id_usuario", mssql.Int, id_usuario)
-            .query("SELECT * FROM MTK_CATEGORIA WHERE USU_USUARIO = @id_usuario");
+            .query("SELECT * FROM MTK_CATEGORIA");
 
         return { status: 200, data: result.recordset };
     } catch (error) {
@@ -71,14 +69,13 @@ export const getCategories = async (req) => {
 
 export const addCategory = async (req) => {
     try {
-        const { nombre, descripcion, id_usuario, tipo_categoria } = req.body;
+        const { nombre, descripcion, tipo_categoria } = req.body;
         const pool = await dbPool.connect();
         const result = await pool.request()
             .input("nombre", mssql.NVarChar, nombre)
             .input("descripcion", mssql.NVarChar, descripcion)
-            .input("id_usuario", mssql.Int, id_usuario)
             .input("tipo_categoria", mssql.Bit, tipo_categoria)
-            .query("INSERT INTO MTK_CATEGORIA (CAT_NOMBRE, USU_USUARIO, CAT_TIPO_CATEGORIA) VALUES (@nombre, @id_usuario, @tipo_categoria)");
+            .query("INSERT INTO MTK_CATEGORIA (CAT_NOMBRE, CAT_DESCRIPCION, CAT_TIPO_CATEGORIA) VALUES (@nombre, @descripcion, @tipo_categoria)");
 
         return { status: 200, data: { message: "Categoría agregada con éxito", result: result.recordset } };
     } catch (error) {
@@ -89,16 +86,15 @@ export const addCategory = async (req) => {
 
 export const updateCategory = async (req) => {
     try {
-        const { id_categoria, nombre, descripcion, id_usuario, tipo_categoria } = req.body;
+        const { id_categoria, nombre, descripcion, tipo_categoria } = req.body;
         const pool = await dbPool.connect();
         const result = await pool.request()
             .input("id_categoria", mssql.Int, id_categoria)
             .input("nombre", mssql.NVarChar, nombre)
             .input("descripcion", mssql.NVarChar, descripcion)
-            .input("id_usuario", mssql.Int, id_usuario)
             .input("tipo_categoria", mssql.Bit, tipo_categoria)
             .query(`UPDATE MTK_CATEGORIA SET CAT_NOMBRE = @nombre, 
-                    CAT_DESCRIPCION = @descripcion, USU_USUARIO = @id_usuario, 
+                    CAT_DESCRIPCION = @descripcion, 
                     CAT_TIPO_CATEGORIA = @tipo_categoria WHERE CAT_CATEGORIA = @id_categoria`);
 
         return { status: 200, data: { message: "Categoría actualizada con éxito", result: result.recordset } };
@@ -173,7 +169,7 @@ export const updateAccount = async (req) => {
 
 export const deleteAccount = async (req) => {
     try {
-        const { id_cuenta } = req.body;
+        const { id_cuenta } = req.params;
         const pool = await dbPool.connect();
         const result = await pool.request()
             .input("id_cuenta", mssql.Int, id_cuenta)
@@ -211,19 +207,25 @@ export const getMovements = async (req) => {
 export const addMovement = async (req) => {
     try {
         const { fecha, hora, cuenta, categoria, monto, descripcion } = req.body;
+
+        if (!cuenta || !categoria) {
+            return { status: 400, error: "La cuenta o la categoría no son válidas." };
+        }
+
         const pool = await dbPool.connect();
         const result = await pool.request()
             .input("fecha", mssql.Date, fecha)
-            .input("hora", mssql.Time, hora)
+            .input("hora", mssql.VarChar, hora)
             .input("cuenta", mssql.Int, cuenta)
             .input("categoria", mssql.Int, categoria)
-            .input("monto", mssql.Decimal, monto)
+            .input("monto", mssql.Decimal(18, 2), monto)
             .input("descripcion", mssql.NVarChar, descripcion)
             .query(`INSERT INTO MTK_MOVIMIENTO (MOV_FECHA, MOV_HORA, CUE_CUENTA, CAT_CATEGORIA, MOV_MONTO, MOV_DESCRIPCION)
                     VALUES (@fecha, @hora, @cuenta, @categoria, @monto, @descripcion)`);
 
         return { status: 200, data: { message: "Movimiento agregado con éxito", result: result.recordset } };
     } catch (error) {
+        console.log(error.message);
         return { status: 400, error: error.message || "Error al agregar el movimiento" };
     }
 };
@@ -253,7 +255,7 @@ export const updateMovement = async (req) => {
 
 export const deleteMovement = async (req) => {
     try {
-        const { id_movimiento } = req.body;
+        const { id_movimiento } = req.params;
         const pool = await dbPool.connect();
         const result = await pool.request()
             .input("id_movimiento", mssql.Int, id_movimiento)

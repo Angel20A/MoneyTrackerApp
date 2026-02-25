@@ -30,8 +30,8 @@ router.post("/login", async (req, res) => {
 });
 
 // --- Categorías ---
-router.get("/categories/:id_usuario", async (req, res) => {
-    console.log(`GET /categories/${req.params.id_usuario}`);
+router.get("/categories", async (req, res) => {
+    console.log("GET /categories");
     const result = await getCategories(req);
     if (result.status === 200) {
         res.status(200).json(result.data)
@@ -101,7 +101,7 @@ router.put("/accounts", async (req, res) => {
     }
 });
 
-router.delete("/accounts", async (req, res) => {
+router.delete("/accounts/:id_cuenta", async (req, res) => {
     console.log("DELETE /accounts");
     const result = await deleteAccount(req);
     if (result.status === 200) {
@@ -142,7 +142,7 @@ router.put("/movements", async (req, res) => {
     }
 });
 
-router.delete("/movements", async (req, res) => {
+router.delete("/movements/:id_movimiento", async (req, res) => {
     console.log("DELETE /movements");
     const result = await deleteMovement(req);
     if (result.status === 200) {
