@@ -1,7 +1,7 @@
 import { dbPool } from "../utils/index.js";
 import bcrypt from "bcryptjs";
 import mssql from "mssql";
-
+import jwt from "jsonwebtoken";
 
 //usuarios
 export const registerUser = async (req) => {
@@ -48,7 +48,13 @@ export const loginUser = async (req) => {
             email: user.USU_EMAIL,
         };
 
-        return { status: 200, data: { message: "Inicio de sesión exitoso", user: data_user } };
+        const token = jwt.sign(
+            { id_usuario: user.USU_USUARIO },
+            process.env.JWT_SECRET,// || "mi_clave_super_secreta_desarrollo",
+            { expiresIn: "2h" }
+        );
+
+        return { status: 200, data: { message: "Inicio de sesión exitoso", user: data_user, token } };
     } catch (error) {
         return { status: 400, error: error.message || "Error al iniciar sesión" };
     }
@@ -184,7 +190,7 @@ export const deleteAccount = async (req) => {
 //movimientos
 export const getMovements = async (req) => {
     try {
-        const { id_usuario } = req.params;
+        const { id_usuario } = req.usuarioAuth.id_usuario;
         const pool = await dbPool.connect();
         const result = await pool.request()
             .input("id_usuario", mssql.Int, id_usuario)
